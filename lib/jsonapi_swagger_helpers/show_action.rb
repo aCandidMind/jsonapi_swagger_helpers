@@ -2,10 +2,6 @@ module JsonapiSwaggerHelpers
   class ShowAction
     include JsonapiSwaggerHelpers::Readable
 
-    def action_name
-      :show
-    end
-
     def generate
       _self = self
       generate_response_schema!
@@ -15,11 +11,16 @@ module JsonapiSwaggerHelpers
         key :operationId, _self.operation_id
         key :tags, _self.all_tags
 
+        request_example = _self.example[:request]
+        if request_example
+          key :'x-code-samples', [{lang: 'http', source: request_example}]
+        end
+
         response 200 do
-          key :description, 'API Response'
           schema do
             key :'$ref', _self.response_schema_id
           end
+          key :example, _self.example[:response]
         end
 
         _self.util.id_in_url(self)
@@ -34,7 +35,8 @@ module JsonapiSwaggerHelpers
         end
 
         if _self.has_sideloads?
-          _self.util.jsonapi_includes(self)
+          includes = _self.include_directive.to_string.split(",").sort.join(",<br/>")
+          _self.util.jsonapi_includes(self, includes)
 
           _self.each_association do |association_name, association_resource|
             _self.util.jsonapi_fields(self, association_resource.config[:type])

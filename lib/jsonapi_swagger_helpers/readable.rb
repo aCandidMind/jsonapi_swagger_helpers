@@ -2,20 +2,28 @@ module JsonapiSwaggerHelpers
   module Readable
     def self.included(klass)
       klass.class_eval do
-        attr_reader :node,
+        attr_reader :name,
+          :node,
           :controller,
           :resource,
           :description,
-          :tags
+          :tags,
+          :example
       end
     end
 
-    def initialize(node, controller, description: nil, tags: [])
+    def initialize(name, node, controller, description: nil, tags: [], example: nil)
+      @name = name
       @node = node
       @controller = controller
       @resource = controller._jsonapi_compliable
       @description = description || default_description
       @tags = tags
+      @example = example || {}
+    end
+
+    def action_name
+      @name
     end
 
     def default_description
@@ -43,19 +51,27 @@ module JsonapiSwaggerHelpers
     end
 
     def full_description
-      "#{description}<br /><br />#{util.sideload_label(include_directive)}"
+      full_desc = description
+      if has_sideloads?
+        full_desc = "#{full_desc}<br /><br />#{util.sideload_label(include_directive)}"
+      end
+      full_desc
     end
 
     def all_tags
-      tags + payload_tags
+      tags
     end
 
     def payload_tags
       util.payload_tags_for(resource, include_directive.to_hash)
     end
 
+    def payloads
+      util.payloads_for(resource, include_directive.to_hash)
+    end
+
     def operation_id
-      "#{controller.name.gsub('::', '-')}-#{action_name}"
+      "#{controller._jsonapi_compliable.config[:model].name.demodulize}-#{action_name}"
     end
 
     def each_stat
@@ -83,15 +99,14 @@ module JsonapiSwaggerHelpers
     end
 
     def response_schema_id
-      "#{operation_id}_#{action_name}_response"
+      "#{operation_id}_response"
     end
 
     def generate_response_schema!
       _self = self
 
-      payloads = util.payloads_for(resource, include_directive.to_hash)
       JsonapiSwaggerHelpers.docs_controller.send(:swagger_schema, response_schema_id) do
-        payloads.each do |p|
+        _self.payloads.each do |p|
           property p.name do
             key :'$ref', p.name
           end

@@ -2,10 +2,6 @@ module JsonapiSwaggerHelpers
   class IndexAction
     include JsonapiSwaggerHelpers::Readable
 
-    def action_name
-      :index
-    end
-
     def generate
       _self = self
       generate_response_schema!
@@ -15,15 +11,22 @@ module JsonapiSwaggerHelpers
         key :operationId, _self.operation_id
         key :tags, _self.all_tags
 
+        request_example = _self.example[:request]
+        if request_example
+          key :'x-code-samples', [{lang: 'http', source: request_example}]
+        end
+
         response 200 do
-          key :description, 'API Response'
           schema do
             key :'$ref', _self.response_schema_id
           end
+          key :example, _self.example[:response]
         end
 
-        _self.util.jsonapi_sorting(self)
-        _self.util.jsonapi_pagination(self)
+        if _self.resource.config[:adapter].class.name.demodulize != 'Null'
+          _self.util.jsonapi_sorting(self)
+          _self.util.jsonapi_pagination(self)
+        end
 
         _self.util.each_filter(_self.resource) do |filter_label|
           _self.util.jsonapi_filter(self, filter_label)
@@ -33,14 +36,17 @@ module JsonapiSwaggerHelpers
           _self.util.jsonapi_stat(self, stat_name, calculations)
         end
 
-        _self.util.jsonapi_fields(self, _self.jsonapi_type)
+        if _self.payloads.collect {|p| p.keys.keys }.flatten.length > 0
+          _self.util.jsonapi_fields(self, _self.jsonapi_type)
+        end
 
         if _self.has_extra_fields?
           _self.util.jsonapi_extra_fields(self, _self.resource)
         end
 
         if _self.has_sideloads?
-          _self.util.jsonapi_includes(self)
+          includes = _self.include_directive.to_string.split(",").sort.join(",<br/>")
+          _self.util.jsonapi_includes(self, includes)
 
           _self.each_association do |association_name, association_resource|
             _self.util.jsonapi_fields(self, association_resource.config[:type])

@@ -2,28 +2,34 @@ module JsonapiSwaggerHelpers
   module Writeable
     def self.included(klass)
       klass.class_eval do
-        attr_reader :node,
+        attr_reader :name,
+          :node,
           :controller,
           :resource,
+          :strong_resource_action,
           :description,
-          :tags
+          :tags,
+          :example
       end
     end
 
-    def initialize(node, controller, description: nil, tags: [])
+    def initialize(name, node, controller, strong_resource_action: nil, description: nil, tags: [], example: nil)
+      @name = name
       @node = node
       @controller = controller
+      @strong_resource_action = strong_resource_action
       @resource = controller._jsonapi_compliable
       @description = description || default_description
       @tags = tags
+      @example = example || {}
+    end
+
+    def action_name
+      @name
     end
 
     def util
       JsonapiSwaggerHelpers::Util
-    end
-
-    def action_name
-      raise 'override me'
     end
 
     def default_description
@@ -31,11 +37,11 @@ module JsonapiSwaggerHelpers
     end
 
     def operation_id
-      "#{controller.name.gsub('::', '-')}-#{action_name}"
+      "#{controller._jsonapi_compliable.config[:model].name.demodulize}-#{action_name}"
     end
 
     def all_tags
-      tags + payload_tags
+      tags
     end
 
     def payload_tags
@@ -53,11 +59,11 @@ module JsonapiSwaggerHelpers
     end
 
     def strong_resource
-      controller._strong_resources[action_name]
+      controller._strong_resources[strong_resource_action || action_name]
     end
 
     def request_schema_id
-      "#{operation_id}_#{action_name}_request"
+      "#{operation_id}_request"
     end
 
     def generate_request_schema!

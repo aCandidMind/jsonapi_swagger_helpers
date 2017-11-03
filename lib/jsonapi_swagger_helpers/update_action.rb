@@ -2,10 +2,6 @@ module JsonapiSwaggerHelpers
   class UpdateAction
     include JsonapiSwaggerHelpers::Writeable
 
-    def action_name
-      :update
-    end
-
     def generate
       _self = self
 
@@ -20,14 +16,17 @@ module JsonapiSwaggerHelpers
         parameter do
           key :name, :payload
           key :in, :body
-
           schema do
             key :'$ref', _self.request_schema_id
+            request_example = _self.example[:request]
+            if request_example
+              key :example, request_example
+            end
           end
         end
 
         response 200 do
-          key :description, 'API Response'
+          key :example, _self.example[:response]
         end
       end
     end

@@ -1,13 +1,20 @@
 module JsonapiSwaggerHelpers
   class Util
-    def self.controller_for(path)
+    def self.controller_for(path, action_mappings)
       path = path.sub('{id}', '1')
-      route = find_route(path)
+      if action_mappings.empty?
+        route = find_route(path)
+      else
+        action_mappings.find do |action_mapping, mapped_actions|
+          mapped_actions.find {|action| route = find_route([path, action].join('/'))}
+        end
+      end
+
 
       if route
         "#{route[:controller]}_controller".classify.constantize
       else
-        Rails.logger.error("JsonapiSwaggerHelpers: No controller found for #{path}!") unless route
+        raise ArgumentError.new("JsonapiSwaggerHelpers: No controller found for #{path}!")
       end
     end
 
@@ -30,7 +37,7 @@ module JsonapiSwaggerHelpers
 
       <<-HTML
   <label>
-    Possible sideloads:
+    Possible includes:
     <span class="possible-sideloads">#{sideloads}</span>
   </label>
       HTML
@@ -140,9 +147,9 @@ module JsonapiSwaggerHelpers
       end
     end
 
-    def self.jsonapi_includes(node)
+    def self.jsonapi_includes(node, includes)
       node.parameter do
-        key :description, '<a href="http://jsonapi.org/format/#fetching-includes">JSONAPI Includes</a>'
+        key :description, "<a href=\"http://jsonapi.org/format/#fetching-includes\">JSONAPI Includes</a><br /><b>Possible Includes:</b> #{includes}"
         key :name, :include
         key :in, :query
         key :type, :string

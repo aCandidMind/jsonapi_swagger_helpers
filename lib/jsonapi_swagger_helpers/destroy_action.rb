@@ -2,10 +2,6 @@ module JsonapiSwaggerHelpers
   class DestroyAction
     include JsonapiSwaggerHelpers::Writeable
 
-    def action_name
-      :destroy
-    end
-
     def generate
       _self = self
 
@@ -16,8 +12,8 @@ module JsonapiSwaggerHelpers
 
         _self.util.id_in_url(self)
 
-        response 200 do
-          key :description, 'API Response'
+        response 204 do
+          key :example, _self.example[:response]
         end
       end
     end
