@@ -96,6 +96,16 @@ module JsonapiSwaggerHelpers
         end
       end
 
+      (action_mappings[:update] || []).each do |action|
+        swagger_path "#{base_path_for_swagger}/{id}/#{action}" do
+          update_action = JsonapiSwaggerHelpers::UpdateAction.new \
+            action, self, controller,
+            strong_resource_action: strong_resource_action,
+            tags: tags, description: descriptions[action], example: examples[action]
+          update_action.generate
+        end
+      end
+
     end
   end
 end
