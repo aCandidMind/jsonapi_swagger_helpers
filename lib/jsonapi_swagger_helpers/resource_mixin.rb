@@ -43,9 +43,11 @@ module JsonapiSwaggerHelpers
       full_path  = [prefix, base_path].join('/').gsub('//', '/')
       controller = JsonapiSwaggerHelpers::Util.controller_for(full_path, action_mappings)
 
+      base_path_for_swagger = base_path.gsub(/:(\w+)/, '{\1}')
+
       ctx = self
       if [:create, :index].any? { |a| actions.include?(a) }
-        swagger_path base_path do
+        swagger_path base_path_for_swagger do
           if actions.include?(:index) && controller.action_methods.include?('index')
             index_action = JsonapiSwaggerHelpers::IndexAction.new \
               :index, self, controller, tags: tags, description: descriptions[:index], example: examples[:index]
@@ -62,7 +64,7 @@ module JsonapiSwaggerHelpers
 
       if [:show, :update, :destroy].any? { |a| actions.include?(a) }
         ctx = self
-        swagger_path "#{base_path}/{id}" do
+        swagger_path "#{base_path_for_swagger}/{id}" do
           if actions.include?(:show) && controller.action_methods.include?('show')
             show_action = JsonapiSwaggerHelpers::ShowAction.new \
               :show,self, controller, tags: tags, description: descriptions[:show], example: examples[:show]
@@ -85,7 +87,7 @@ module JsonapiSwaggerHelpers
 
       (action_mappings[:create] || []).each do |action|
         path_suffix = strong_resource_action == :update ? "/{id}/#{action}" : "/#{action}"
-        swagger_path "#{base_path}#{path_suffix}" do
+        swagger_path "#{base_path_for_swagger}#{path_suffix}" do
           create_action = JsonapiSwaggerHelpers::CreateAction.new \
             action, self, controller,
             strong_resource_action: strong_resource_action,
