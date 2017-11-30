@@ -8,6 +8,7 @@ module JsonapiSwaggerHelpers
                          only: [],
                          except: [],
                          action_mappings: {},
+                         is_resource: {},
                          strong_resource_action: nil,
                          examples: {}
                         )
@@ -19,6 +20,7 @@ module JsonapiSwaggerHelpers
         only: only,
         except: except,
         action_mappings: action_mappings,
+        is_resource: is_resource,
         strong_resource_action: strong_resource_action,
         examples: examples
       }
@@ -33,6 +35,7 @@ module JsonapiSwaggerHelpers
       except = config[:except]
       examples = config[:examples]
       action_mappings = config[:action_mappings]
+      is_resource = config[:is_resource]
       strong_resource_action = config[:strong_resource_action]
 
       actions = [:index, :show, :create, :update, :destroy]
@@ -50,7 +53,7 @@ module JsonapiSwaggerHelpers
         swagger_path base_path_for_swagger do
           if actions.include?(:index) && controller.action_methods.include?('index')
             index_action = JsonapiSwaggerHelpers::IndexAction.new \
-              :index, self, controller, tags: tags, description: descriptions[:index], example: examples[:index]
+              :index, self, controller, is_resource: is_resource.fetch(:index, true), tags: tags, description: descriptions[:index], example: examples[:index]
             index_action.generate
           end
 
@@ -67,7 +70,7 @@ module JsonapiSwaggerHelpers
         swagger_path "#{base_path_for_swagger}/{id}" do
           if actions.include?(:show) && controller.action_methods.include?('show')
             show_action = JsonapiSwaggerHelpers::ShowAction.new \
-              :show,self, controller, tags: tags, description: descriptions[:show], example: examples[:show]
+              :show,self, controller, is_resource: is_resource.fetch(:show, true), tags: tags, description: descriptions[:show], example: examples[:show]
             show_action.generate
           end
 
@@ -103,6 +106,15 @@ module JsonapiSwaggerHelpers
             strong_resource_action: strong_resource_action,
             tags: tags, description: descriptions[action], example: examples[action]
           update_action.generate
+        end
+      end
+
+      (action_mappings[:show] || []).each do |action|
+        swagger_path "#{base_path_for_swagger}/{id}/#{action}" do
+          show_action = JsonapiSwaggerHelpers::ShowAction.new \
+            action, self, controller,
+            is_resource: is_resource.fetch(action, true), tags: tags, description: descriptions[action], example: examples[action]
+          show_action.generate
         end
       end
 

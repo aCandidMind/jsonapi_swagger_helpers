@@ -4,6 +4,7 @@ module JsonapiSwaggerHelpers
 
     def generate
       _self = self
+      _is_resource = @is_resource
       generate_response_schema!
 
       @node.operation :get do
@@ -24,7 +25,9 @@ module JsonapiSwaggerHelpers
         end
 
         _self.util.id_in_url(self)
-        _self.util.jsonapi_fields(self, _self.jsonapi_type)
+        if _is_resource
+          _self.util.jsonapi_fields(self, _self.jsonapi_type)
+        end
 
         if _self.has_extra_fields?
           _self.util.jsonapi_extra_fields(self, _self.resource)

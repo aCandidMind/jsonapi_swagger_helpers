@@ -12,10 +12,11 @@ module JsonapiSwaggerHelpers
       end
     end
 
-    def initialize(name, node, controller, description: nil, tags: [], example: nil)
+    def initialize(name, node, controller, is_resource: true, description: nil, tags: [], example: nil)
       @name = name
       @node = node
       @controller = controller
+      @is_resource = is_resource
       @resource = controller._jsonapi_compliable
       @description = description || default_description
       @tags = tags
@@ -39,15 +40,15 @@ module JsonapiSwaggerHelpers
     end
 
     def include_directive
-      util.include_directive_for(controller, action_name)
+      @is_resource ? util.include_directive_for(controller, action_name) : {}
     end
 
     def has_sideloads?
-      include_directive.keys.length > 0
+      @is_resource && include_directive.keys.length > 0
     end
 
     def has_extra_fields?
-      resource.config[:extra_fields].keys.length > 1
+      @is_resource && resource.config[:extra_fields].keys.length > 1
     end
 
     def full_description
@@ -75,6 +76,9 @@ module JsonapiSwaggerHelpers
     end
 
     def each_stat
+      unless @is_resource
+        return [].to_enum
+      end
       resource.config[:stats].each_pair do |stat_name, opts|
         calculations = opts.calculations.keys - [:keys]
         calculations = calculations.join(', ')
@@ -84,6 +88,9 @@ module JsonapiSwaggerHelpers
     end
 
     def each_association
+      unless @is_resource
+        return [].to_enum
+      end
       types = [jsonapi_type]
       resource_map = util.all_resources(resource, include_directive)
       resource_map.each_pair do |association_name, association_resource|
